@@ -14,4 +14,3 @@ python main.py
 
 ## Output
 
-![Timetable](timetable.png)
