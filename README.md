@@ -13,4 +13,5 @@ pip install -r requirements.txt
 python main.py
 
 ## Output
-Excel file: advanced_timetable.xlsx
+
+![Timetable](timetable.png)
