@@ -1,146 +1,144 @@
 import streamlit as st
-from ortools.sat.python import cp_model
+import json
 import pandas as pd
+from auth import login, logout
+from scheduler import generate_timetable, detect_conflicts
+from utils import create_time_slots, export_to_excel
 
-# Page config
-st.set_page_config(page_title="AI Timetable Generator", layout="wide")
+# ---------- CONFIG ----------
+st.set_page_config(page_title="Timetable Generator", layout="wide")
 
-st.title("🚀 AI-Powered Timetable Generator")
+# ---------- STYLE ----------
+st.markdown("""
+<style>
+.main {
+    background: linear-gradient(to right, #141e30, #243b55);
+    color: white;
+}
+h1 { text-align: center; color: #00c6ff; }
+.stButton>button {
+    border-radius: 10px;
+    background-color: #00c6ff;
+    color: white;
+}
+</style>
+""", unsafe_allow_html=True)
 
-st.write("Click the button below to generate a timetable using AI.")
+# ---------- LOGIN ----------
+if not login():
+    st.stop()
 
-# Button
-if st.button("Generate Timetable"):
+logout()
 
-    DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"]
-    SLOTS = ["9-10", "10-11", "11-12", "12-1", "LUNCH", "2-3", "3-4"]
+st.markdown("<h1>📅 Intelligent Timetable Generator</h1>", unsafe_allow_html=True)
 
-    courses = {
-        "Math": {"theory": 3, "lab": 0},
-        "Physics": {"theory": 2, "lab": 2},
-        "DBMS": {"theory": 3, "lab": 2},
-        "OS": {"theory": 3, "lab": 0}
-    }
+# ---------- SIDEBAR ----------
+st.sidebar.header("⚙️ Configuration")
 
-    sections = ["A", "B"]
+course = st.sidebar.selectbox("🎓 Course", ["B.Tech CSE", "BBA", "MBA"])
+semester = st.sidebar.selectbox("📘 Semester", ["Sem 1", "Sem 2", "Sem 3"])
+sections = st.sidebar.multiselect("🏫 Sections", ["A", "B", "C"], default=["A"])
 
-    faculty_map = {
-        "Math": "ProfA",
-        "Physics": "ProfB",
-        "DBMS": "ProfC",
-        "OS": "ProfD"
-    }
+rooms = st.sidebar.multiselect(
+    "🏫 Rooms",
+    ["Room 101", "Room 102", "Lab 1"],
+    default=["Room 101", "Room 102"]
+)
 
-    rooms = ["R1", "R2"]
-    labs = ["Lab1"]
+# ---------- TIMINGS ----------
+st.sidebar.header("⏰ Timings")
 
-    # MODEL
-    model = cp_model.CpModel()
-    x = {}
+start_time = st.sidebar.time_input("Start Time")
+end_time = st.sidebar.time_input("End Time")
+duration = st.sidebar.slider("Period Duration (min)", 30, 120, 60)
 
-    for sec in sections:
-        for course in courses:
-            for d in range(len(DAYS)):
-                for s in range(len(SLOTS)):
-                    if SLOTS[s] == "LUNCH":
-                        continue
-                    for r in rooms + labs:
-                        x[(sec, course, d, s, r)] = model.NewBoolVar(
-                            f"x_{sec}_{course}_{d}_{s}_{r}"
-                        )
+# ---------- DARK MODE ----------
+dark_mode = st.sidebar.toggle("🌙 Dark Mode")
 
-    # Course hours constraint
-    for sec in sections:
-        for course in courses:
-            total = courses[course]["theory"] + courses[course]["lab"]
-            model.Add(sum(
-                x[(sec, course, d, s, r)]
-                for d in range(len(DAYS))
-                for s in range(len(SLOTS)) if SLOTS[s] != "LUNCH"
-                for r in rooms + labs
-            ) == total)
+if dark_mode:
+    st.markdown("""
+    <style>
+    .main { background-color: #0e1117; color: white; }
+    </style>
+    """, unsafe_allow_html=True)
 
-    # One class per slot
-    for sec in sections:
-        for d in range(len(DAYS)):
-            for s in range(len(SLOTS)):
-                if SLOTS[s] == "LUNCH":
-                    continue
-                model.Add(sum(
-                    x[(sec, c, d, s, r)]
-                    for c in courses
-                    for r in rooms + labs
-                ) <= 1)
+# ---------- LOAD DATA ----------
+with open("data.json") as f:
+    data = json.load(f)
 
-    # Faculty clash
-    for f in set(faculty_map.values()):
-        for d in range(len(DAYS)):
-            for s in range(len(SLOTS)):
-                if SLOTS[s] == "LUNCH":
-                    continue
-                model.Add(sum(
-                    x[(sec, c, d, s, r)]
-                    for sec in sections
-                    for c in courses
-                    for r in rooms + labs
-                    if faculty_map[c] == f
-                ) <= 1)
+subjects = data["subjects"]
+faculty_map = data["faculty"]
 
-    # Room clash
-    for r in rooms + labs:
-        for d in range(len(DAYS)):
-            for s in range(len(SLOTS)):
-                if SLOTS[s] == "LUNCH":
-                    continue
-                model.Add(sum(
-                    x[(sec, c, d, s, r)]
-                    for sec in sections
-                    for c in courses
-                ) <= 1)
+days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
 
-    # Solve
-    solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = 10
-    result = solver.Solve(model)
+# ---------- GENERATE ----------
+if st.button("🚀 Generate Timetable"):
+    slots = create_time_slots(start_time, end_time, duration)
 
-    if result == cp_model.FEASIBLE or result == cp_model.OPTIMAL:
-        st.success("✅ Timetable Generated!")
+    timetable = generate_timetable(
+        sections, days, slots, subjects, faculty_map, rooms
+    )
 
-        timetable = {
-            sec: {day: {slot: "FREE" for slot in SLOTS} for day in DAYS}
-            for sec in sections
-        }
+    st.session_state.timetable = timetable
+    st.success("Timetable Generated!")
 
-        for sec in sections:
-            for course in courses:
-                for d in range(len(DAYS)):
-                    for s in range(len(SLOTS)):
-                        if SLOTS[s] == "LUNCH":
-                            timetable[sec][DAYS[d]][SLOTS[s]] = "LUNCH"
-                            continue
-                        for r in rooms + labs:
-                            if solver.Value(x[(sec, course, d, s, r)]) == 1:
-                                timetable[sec][DAYS[d]][SLOTS[s]] = f"{course} ({faculty_map[course]}) [{r}]"
+# ---------- REGENERATE ----------
+if st.button("🔄 Regenerate Better"):
+    if "timetable" in st.session_state:
+        timetable = generate_timetable(
+            sections, days, create_time_slots(start_time, end_time, duration),
+            subjects, faculty_map, rooms
+        )
+        st.session_state.timetable = timetable
 
-        # Display
-        for sec in sections:
+# ---------- DISPLAY ----------
+if "timetable" in st.session_state:
+    timetable = st.session_state.timetable
+
+    tab1, tab2 = st.tabs(["📅 Timetable", "📊 Analytics"])
+
+    with tab1:
+        for sec, df in timetable.items():
             st.subheader(f"Section {sec}")
-            df = pd.DataFrame(timetable[sec]).T
             st.dataframe(df)
 
-        # Download Excel
-        file = "timetable.xlsx"
-        writer = pd.ExcelWriter(file, engine='openpyxl')
+    with tab2:
+        st.subheader("📊 Room Usage")
 
-        for sec in sections:
-            df = pd.DataFrame(timetable[sec]).T
-            df.to_excel(writer, sheet_name=sec)
+        room_count = {}
+        for df in timetable.values():
+            for val in df.values.flatten():
+                if val:
+                    room = val.split("[")[-1].replace("]", "")
+                    room_count[room] = room_count.get(room, 0) + 1
 
-        writer.close()
+        st.bar_chart(pd.DataFrame.from_dict(room_count, orient='index', columns=['Usage']))
 
-        with open(file, "rb") as f:
-            st.download_button("📥 Download Excel", f, file_name="timetable.xlsx")
-
+    # Conflicts
+    conflicts = detect_conflicts(timetable)
+    if conflicts:
+        st.error("⚠️ Conflicts Found")
+        for c in conflicts:
+            st.write(c)
     else:
-        st.error("❌ No feasible timetable found!")
-      
+        st.success("✅ No Conflicts")
+
+    # Export
+    if st.button("📥 Export Excel"):
+        export_to_excel(timetable)
+
+        with open("timetable.xlsx", "rb") as f:
+            st.download_button("Download File", f, "timetable.xlsx")
+
+# ---------- SAVE CONFIG ----------
+if st.sidebar.button("💾 Save Config"):
+    config = {
+        "course": course,
+        "semester": semester,
+        "sections": sections
+    }
+
+    with open("config.json", "w") as f:
+        json.dump(config, f)
+
+    st.sidebar.success("Saved!")
