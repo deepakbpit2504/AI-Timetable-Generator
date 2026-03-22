@@ -16,19 +16,20 @@ if not login():
 
 logout()
 
-# STEP CONTROL
 if "step" not in st.session_state:
     st.session_state.step = 1
 
 # ---------- STEP 1 ----------
 if st.session_state.step == 1:
-    st.header("Step 1: Academic Setup")
+
+    st.header("📘 Academic Setup")
 
     course = st.selectbox("Course", ["B.Tech","BBA","MBA","BSc"])
     branch = st.selectbox("Branch", ["CSE","IT","ECE","EEE"])
     shift = st.selectbox("Shift", ["Shift 1","Shift 2"])
 
     sections = st.multiselect("Sections", ["A","B","C"], default=["A"])
+
     rooms = {
         "Room 101": 60,
         "Room 102": 40,
@@ -48,7 +49,8 @@ if st.session_state.step == 1:
 
 # ---------- STEP 2 ----------
 elif st.session_state.step == 2:
-    st.header("Step 2: Subjects")
+
+    st.header("👨‍🏫 Subjects")
 
     num = st.number_input("Subjects",1,10,5)
 
@@ -56,10 +58,10 @@ elif st.session_state.step == 2:
     faculty_map = {}
 
     for i in range(num):
-        name = st.text_input(f"Subject {i}", key=f"s{i}")
+        name = st.text_input(f"Subject {i}")
         theory = st.number_input(f"Theory {i}",1,5,3)
         practical = st.number_input(f"Practical {i}",0,5,1)
-        fac = st.text_input(f"Faculty {i}", key=f"f{i}")
+        fac = st.text_input(f"Faculty {i}")
 
         if name:
             subjects[name]={"theory":theory,"practical":practical}
@@ -73,7 +75,8 @@ elif st.session_state.step == 2:
 
 # ---------- STEP 3 ----------
 elif st.session_state.step == 3:
-    st.header("Step 3: Timing")
+
+    st.header("⏰ Timing")
 
     start = st.time_input("Start")
     end = st.time_input("End")
@@ -96,9 +99,10 @@ elif st.session_state.step == 4:
 
     locked = st.multiselect("Lock Slots", [f"{d}-{s}" for d in days for s in slots])
 
+    # ---------- GENERATE ----------
     if menu=="Generate":
 
-        if st.button("Optimize 💀"):
+        if st.button("💀 Optimize Timetable"):
             best=None
             best_score=999
 
@@ -122,27 +126,38 @@ elif st.session_state.step == 4:
             st.session_state.tt = best
             st.success(f"Best Score: {best_score}")
 
+    # ---------- VIEW ----------
     elif menu=="View":
 
         if "tt" in st.session_state:
             tt = st.session_state.tt
 
+            st.subheader("📅 Weekly Timetable")
+
             for sec, df in tt.items():
+                st.markdown(f"## Section {sec}")
                 st.dataframe(df)
 
-            score, conflicts = evaluate_timetable(tt)
-            st.write("Conflicts:", conflicts)
+                st.markdown("### Day-wise View")
+                for day in df.index:
+                    st.write(f"**{day}**")
+                    for slot, val in df.loc[day].items():
+                        st.write(f"{slot} → {val if val else 'Free'}")
+                    st.divider()
+
+            score,_ = evaluate_timetable(tt)
+            st.metric("Score", score)
 
             faculty_tt = build_faculty_timetable(tt)
-
-            st.subheader("Faculty")
+            st.subheader("👨‍🏫 Faculty Timetable")
             st.write(faculty_tt)
 
             if st.button("Export"):
                 export_to_excel(tt, faculty_tt)
                 with open("timetable.xlsx","rb") as f:
-                    st.download_button("Download",f)
+                    st.download_button("Download", f)
 
+    # ---------- ANALYTICS ----------
     elif menu=="Analytics":
 
         if "tt" in st.session_state:
