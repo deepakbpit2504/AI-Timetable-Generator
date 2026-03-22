@@ -1,0 +1,10 @@
+{
+  "subjects": ["Maths", "DBMS", "OS", "CN", "AI"],
+  "faculty": {
+    "Maths": "Dr. Sharma",
+    "DBMS": "Dr. Gupta",
+    "OS": "Dr. Verma",
+    "CN": "Dr. Singh",
+    "AI": "Dr. Mehta"
+  }
+}
