@@ -1,36 +1,23 @@
 import streamlit as st
-import json
 import pandas as pd
 from auth import login, logout
 from scheduler import generate_timetable, detect_conflicts
 from utils import create_time_slots, export_to_excel
 
-# ---------- CONFIG ----------
-st.set_page_config(page_title="Timetable Generator", layout="wide")
+st.set_page_config(page_title="AI Timetable", layout="wide")
 
-# ---------- STYLE ----------
+# ---------- UI ----------
 st.markdown("""
 <style>
-.main {
-    background: linear-gradient(to right, #141e30, #243b55);
-    color: white;
-}
-h1 { text-align: center; color: #00c6ff; }
-.stButton>button {
-    border-radius: 10px;
-    background-color: #00c6ff;
-    color: white;
-}
+.main {background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);color:white;}
+h1,h2,h3{color:#00e6e6;}
+.stButton>button{border-radius:10px;background:#00c6ff;color:white;}
 </style>
 """, unsafe_allow_html=True)
 
-# ---------- WELCOME TITLE (NEW) ----------
-st.markdown("""
-<h1>🤖 AI Timetable Generator App</h1>
-<p style='text-align:center; font-size:18px;'>
-Smart Scheduling • Conflict-Free • Automated
-</p>
-""", unsafe_allow_html=True)
+st.markdown("<h1>🤖 AI Timetable Generator</h1>", unsafe_allow_html=True)
+
+st.info("🧠 Heuristic-based scheduling with iterative optimization")
 
 # ---------- LOGIN ----------
 if not login():
@@ -38,161 +25,94 @@ if not login():
 
 logout()
 
-# ---------- MAIN HEADER ----------
-st.markdown("<h1>📅 Intelligent Timetable Generator</h1>", unsafe_allow_html=True)
+# ---------- NAV ----------
+menu = st.sidebar.radio("Navigation", ["Dashboard","Generator","Analytics"])
 
-# ---------- SIDEBAR ----------
-st.sidebar.header("⚙️ Configuration")
+# ---------- INPUT ----------
+course = st.sidebar.selectbox("Course", ["B.Tech","BBA","MBA","BSc"])
+branch = st.sidebar.selectbox("Branch", ["CSE","IT","ECE","EEE"])
+shift = st.sidebar.selectbox("Shift", ["Shift 1","Shift 2"])
+sections = st.sidebar.multiselect("Sections", ["A","B","C"], default=["A"])
+rooms = st.sidebar.multiselect("Rooms", ["Room 101","Room 102","Lab 1"], default=["Room 101"])
 
-course = st.sidebar.selectbox("🎓 Course", ["B.Tech CSE", "BBA", "MBA"])
-semester = st.sidebar.selectbox("📘 Semester", ["Sem 1", "Sem 2", "Sem 3"])
+num = st.sidebar.number_input("Subjects",1,10,5)
 
-sections = st.sidebar.multiselect(
-    "🏫 Sections", ["A", "B", "C"], default=["A"]
-)
+subjects=[]
+faculty_map={}
 
-rooms = st.sidebar.multiselect(
-    "🏫 Rooms",
-    ["Room 101", "Room 102", "Lab 1"],
-    default=["Room 101", "Room 102"]
-)
+for i in range(num):
+    s=st.sidebar.text_input(f"Sub {i+1}",key=i)
+    f=st.sidebar.text_input(f"Fac {i+1}",key=i+100)
+    if s:
+        subjects.append(s)
+        faculty_map[s]=f if f else "TBD"
 
-# ---------- VALIDATION ----------
-if not sections:
-    st.warning("Please select at least one section")
-    st.stop()
+start=st.sidebar.time_input("Start")
+end=st.sidebar.time_input("End")
+duration=st.sidebar.slider("Duration",30,120,60)
 
-if not rooms:
-    st.warning("Please select at least one room")
-    st.stop()
+days=["Mon","Tue","Wed","Thu","Fri"]
 
-# ---------- TIMINGS ----------
-st.sidebar.header("⏰ Timings")
+# ---------- DASHBOARD ----------
+if menu=="Dashboard":
+    st.metric("Subjects",len(subjects))
+    st.metric("Sections",len(sections))
+    st.metric("Rooms",len(rooms))
 
-start_time = st.sidebar.time_input("Start Time")
-end_time = st.sidebar.time_input("End Time")
-duration = st.sidebar.slider("Period Duration (min)", 30, 120, 60)
+# ---------- GENERATOR ----------
+if menu=="Generator":
 
-if start_time >= end_time:
-    st.error("Start time must be before end time")
-    st.stop()
+    if st.button("Generate"):
+        slots=create_time_slots(start,end,duration)
+        tt=generate_timetable(sections,days,slots,subjects,faculty_map,rooms)
+        st.session_state.tt=tt
 
-# ---------- DARK MODE ----------
-dark_mode = st.sidebar.toggle("🌙 Dark Mode")
+    if st.button("🔄 Regenerate Better"):
 
-if dark_mode:
-    st.markdown("""
-    <style>
-    .main { background-color: #0e1117; color: white; }
-    </style>
-    """, unsafe_allow_html=True)
+        best=None
+        min_conf=999
 
-# ---------- LOAD DATA ----------
-with open("data.json") as f:
-    data = json.load(f)
+        for _ in range(5):
+            slots=create_time_slots(start,end,duration)
+            tt=generate_timetable(sections,days,slots,subjects,faculty_map,rooms)
+            conf=detect_conflicts(tt)
 
-subjects = data["subjects"]
-faculty_map = data["faculty"]
+            if len(conf)<min_conf:
+                min_conf=len(conf)
+                best=tt
 
-days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+        st.session_state.tt=best
+        st.success(f"Optimized! Conflicts: {min_conf}")
 
-# ---------- GENERATE ----------
-if st.button("🚀 Generate Timetable"):
+    if "tt" in st.session_state:
+        tt=st.session_state.tt
 
-    slots = create_time_slots(start_time, end_time, duration)
-
-    if not slots:
-        st.error("No time slots generated. Check timings.")
-        st.stop()
-
-    timetable = generate_timetable(
-        sections, days, slots, subjects, faculty_map, rooms
-    )
-
-    st.session_state.timetable = timetable
-    st.success("Timetable Generated!")
-
-# ---------- REGENERATE ----------
-if st.button("🔄 Regenerate Better"):
-    if "timetable" in st.session_state:
-        slots = create_time_slots(start_time, end_time, duration)
-
-        if not slots:
-            st.error("Invalid slots")
-            st.stop()
-
-        timetable = generate_timetable(
-            sections, days, slots, subjects, faculty_map, rooms
-        )
-
-        st.session_state.timetable = timetable
-
-# ---------- DISPLAY ----------
-if "timetable" in st.session_state:
-
-    timetable = st.session_state.timetable
-
-    # ---------- ANALYTICS ----------
-    st.subheader("📊 Analytics")
-
-    if timetable:
-        first_df = next(iter(timetable.values()))
-        st.metric("Total Slots", len(days) * len(first_df.columns))
-    else:
-        st.metric("Total Slots", 0)
-
-    st.metric("Subjects", len(subjects))
-
-    # ---------- TABS ----------
-    tab1, tab2 = st.tabs(["📅 Timetable", "📊 Room Usage"])
-
-    with tab1:
-        for sec, df in timetable.items():
-            st.subheader(f"Section {sec}")
+        for sec,df in tt.items():
+            st.subheader(sec)
             st.dataframe(df)
 
-    with tab2:
-        room_count = {}
+        conflicts=detect_conflicts(tt)
 
-        for df in timetable.values():
+        st.subheader("Conflicts")
+        if conflicts:
+            for c in conflicts:
+                st.write(c)
+        else:
+            st.success("No conflicts!")
+
+        if st.button("Export"):
+            export_to_excel(tt)
+            with open("timetable.xlsx","rb") as f:
+                st.download_button("Download",f)
+
+# ---------- ANALYTICS ----------
+if menu=="Analytics":
+    if "tt" in st.session_state:
+        tt=st.session_state.tt
+        rc={}
+        for df in tt.values():
             for val in df.values.flatten():
                 if val:
-                    room = val.split("[")[-1].replace("]", "")
-                    room_count[room] = room_count.get(room, 0) + 1
-
-        if room_count:
-            st.bar_chart(pd.DataFrame.from_dict(
-                room_count, orient='index', columns=['Usage']
-            ))
-        else:
-            st.info("No room usage data available")
-
-    # ---------- CONFLICT CHECK ----------
-    conflicts = detect_conflicts(timetable)
-
-    if conflicts:
-        st.error("⚠️ Conflicts Found")
-        for c in conflicts:
-            st.write(c)
-    else:
-        st.success("✅ No Conflicts")
-
-    # ---------- EXPORT ----------
-    if st.button("📥 Export Excel"):
-        export_to_excel(timetable)
-
-        with open("timetable.xlsx", "rb") as f:
-            st.download_button("Download File", f, "timetable.xlsx")
-
-# ---------- SAVE CONFIG ----------
-if st.sidebar.button("💾 Save Config"):
-    config = {
-        "course": course,
-        "semester": semester,
-        "sections": sections
-    }
-
-    with open("config.json", "w") as f:
-        json.dump(config, f)
-
-    st.sidebar.success("Saved!")
+                    r=val.split("[")[-1].replace("]","")
+                    rc[r]=rc.get(r,0)+1
+        st.bar_chart(pd.DataFrame.from_dict(rc,orient='index',columns=['Usage']))
