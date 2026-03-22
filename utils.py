@@ -1,11 +1,12 @@
 import pandas as pd
+from io import BytesIO
 
 def create_time_slots(start, end, duration):
     slots = []
     current = start
 
     while current < end:
-        total = current.hour*60 + current.minute + duration
+        total = current.hour * 60 + current.minute + duration
         h = total // 60
         m = total % 60
 
@@ -16,9 +17,17 @@ def create_time_slots(start, end, duration):
 
 
 def export_to_excel(tt, faculty_tt):
-    with pd.ExcelWriter("timetable.xlsx") as writer:
+    output = BytesIO()
 
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+
+        # Section-wise sheets
         for sec, df in tt.items():
-            df.to_excel(writer, sheet_name=sec)
+            df.to_excel(writer, sheet_name=f"Section_{sec}")
 
-        pd.DataFrame(dict([(k, pd.Series(v)) for k,v in faculty_tt.items()])).to_excel(writer, sheet_name="Faculty")
+        # Faculty sheet
+        faculty_df = pd.DataFrame(dict([(k, pd.Series(v)) for k, v in faculty_tt.items()]))
+        faculty_df.to_excel(writer, sheet_name="Faculty")
+
+    output.seek(0)
+    return output
