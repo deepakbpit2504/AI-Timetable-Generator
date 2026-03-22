@@ -24,12 +24,21 @@ h1 { text-align: center; color: #00c6ff; }
 </style>
 """, unsafe_allow_html=True)
 
+# ---------- WELCOME TITLE (NEW) ----------
+st.markdown("""
+<h1>🤖 AI Timetable Generator App</h1>
+<p style='text-align:center; font-size:18px;'>
+Smart Scheduling • Conflict-Free • Automated
+</p>
+""", unsafe_allow_html=True)
+
 # ---------- LOGIN ----------
 if not login():
     st.stop()
 
 logout()
 
+# ---------- MAIN HEADER ----------
 st.markdown("<h1>📅 Intelligent Timetable Generator</h1>", unsafe_allow_html=True)
 
 # ---------- SIDEBAR ----------
@@ -37,7 +46,10 @@ st.sidebar.header("⚙️ Configuration")
 
 course = st.sidebar.selectbox("🎓 Course", ["B.Tech CSE", "BBA", "MBA"])
 semester = st.sidebar.selectbox("📘 Semester", ["Sem 1", "Sem 2", "Sem 3"])
-sections = st.sidebar.multiselect("🏫 Sections", ["A", "B", "C"], default=["A"])
+
+sections = st.sidebar.multiselect(
+    "🏫 Sections", ["A", "B", "C"], default=["A"]
+)
 
 rooms = st.sidebar.multiselect(
     "🏫 Rooms",
@@ -45,12 +57,25 @@ rooms = st.sidebar.multiselect(
     default=["Room 101", "Room 102"]
 )
 
+# ---------- VALIDATION ----------
+if not sections:
+    st.warning("Please select at least one section")
+    st.stop()
+
+if not rooms:
+    st.warning("Please select at least one room")
+    st.stop()
+
 # ---------- TIMINGS ----------
 st.sidebar.header("⏰ Timings")
 
 start_time = st.sidebar.time_input("Start Time")
 end_time = st.sidebar.time_input("End Time")
 duration = st.sidebar.slider("Period Duration (min)", 30, 120, 60)
+
+if start_time >= end_time:
+    st.error("Start time must be before end time")
+    st.stop()
 
 # ---------- DARK MODE ----------
 dark_mode = st.sidebar.toggle("🌙 Dark Mode")
@@ -73,7 +98,12 @@ days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
 
 # ---------- GENERATE ----------
 if st.button("🚀 Generate Timetable"):
+
     slots = create_time_slots(start_time, end_time, duration)
+
+    if not slots:
+        st.error("No time slots generated. Check timings.")
+        st.stop()
 
     timetable = generate_timetable(
         sections, days, slots, subjects, faculty_map, rooms
@@ -85,17 +115,36 @@ if st.button("🚀 Generate Timetable"):
 # ---------- REGENERATE ----------
 if st.button("🔄 Regenerate Better"):
     if "timetable" in st.session_state:
+        slots = create_time_slots(start_time, end_time, duration)
+
+        if not slots:
+            st.error("Invalid slots")
+            st.stop()
+
         timetable = generate_timetable(
-            sections, days, create_time_slots(start_time, end_time, duration),
-            subjects, faculty_map, rooms
+            sections, days, slots, subjects, faculty_map, rooms
         )
+
         st.session_state.timetable = timetable
 
 # ---------- DISPLAY ----------
 if "timetable" in st.session_state:
+
     timetable = st.session_state.timetable
 
-    tab1, tab2 = st.tabs(["📅 Timetable", "📊 Analytics"])
+    # ---------- ANALYTICS ----------
+    st.subheader("📊 Analytics")
+
+    if timetable:
+        first_df = next(iter(timetable.values()))
+        st.metric("Total Slots", len(days) * len(first_df.columns))
+    else:
+        st.metric("Total Slots", 0)
+
+    st.metric("Subjects", len(subjects))
+
+    # ---------- TABS ----------
+    tab1, tab2 = st.tabs(["📅 Timetable", "📊 Room Usage"])
 
     with tab1:
         for sec, df in timetable.items():
@@ -103,19 +152,24 @@ if "timetable" in st.session_state:
             st.dataframe(df)
 
     with tab2:
-        st.subheader("📊 Room Usage")
-
         room_count = {}
+
         for df in timetable.values():
             for val in df.values.flatten():
                 if val:
                     room = val.split("[")[-1].replace("]", "")
                     room_count[room] = room_count.get(room, 0) + 1
 
-        st.bar_chart(pd.DataFrame.from_dict(room_count, orient='index', columns=['Usage']))
+        if room_count:
+            st.bar_chart(pd.DataFrame.from_dict(
+                room_count, orient='index', columns=['Usage']
+            ))
+        else:
+            st.info("No room usage data available")
 
-    # Conflicts
+    # ---------- CONFLICT CHECK ----------
     conflicts = detect_conflicts(timetable)
+
     if conflicts:
         st.error("⚠️ Conflicts Found")
         for c in conflicts:
@@ -123,7 +177,7 @@ if "timetable" in st.session_state:
     else:
         st.success("✅ No Conflicts")
 
-    # Export
+    # ---------- EXPORT ----------
     if st.button("📥 Export Excel"):
         export_to_excel(timetable)
 
