@@ -26,11 +26,6 @@ if st.session_state.step == 1:
 
     st.header("📘 Academic Setup")
 
-    st.info("""
-Define course structure, sections, and classroom capacity.
-This ensures proper allocation and avoids overcrowding.
-""")
-
     course = st.selectbox("Course", ["B.Tech","BBA","MBA","BSc"])
     branch = st.selectbox("Branch", ["CSE","IT","ECE","EEE"])
     shift = st.selectbox("Shift", ["Shift 1","Shift 2"])
@@ -59,11 +54,6 @@ elif st.session_state.step == 2:
 
     st.header("👨‍🏫 Subjects & Faculty")
 
-    st.info("""
-Assign subjects with theory/practical hours and map faculty.
-This helps maintain balanced teaching workload.
-""")
-
     num = st.number_input("Number of Subjects",1,10,5)
 
     subjects = {}
@@ -85,19 +75,10 @@ This helps maintain balanced teaching workload.
         st.session_state.step = 3
         st.rerun()
 
-    if st.button("⬅️ Back"):
-        st.session_state.step = 1
-        st.rerun()
-
 # ---------- STEP 3 ----------
 elif st.session_state.step == 3:
 
     st.header("⏰ Timing Setup")
-
-    st.info("""
-Define working hours and period duration.
-Ensures proper scheduling without overlaps.
-""")
 
     start = st.time_input("Start Time")
     end = st.time_input("End Time")
@@ -110,19 +91,10 @@ Ensures proper scheduling without overlaps.
         st.session_state.step = 4
         st.rerun()
 
-    if st.button("⬅️ Back"):
-        st.session_state.step = 2
-        st.rerun()
-
-# ---------- FINAL DASHBOARD ----------
+# ---------- FINAL ----------
 elif st.session_state.step == 4:
 
-    st.header("🚀 Timetable Dashboard")
-
-    st.info("""
-Generate optimized timetable, view weekly schedule,
-analyze conflicts, and export data.
-""")
+    st.header("🚀 Dashboard")
 
     menu = st.radio("Menu", ["Generate","View","Analytics"])
 
@@ -133,7 +105,7 @@ analyze conflicts, and export data.
         st.session_state.duration
     )
 
-    locked = st.multiselect("🔒 Lock Slots", [f"{d}-{s}" for d in days for s in slots])
+    locked = st.multiselect("Lock Slots", [f"{d}-{s}" for d in days for s in slots])
 
     # ---------- GENERATE ----------
     if menu == "Generate":
@@ -176,42 +148,24 @@ analyze conflicts, and export data.
 
             for sec, df in tt.items():
                 st.markdown(f"## Section {sec}")
-                st.dataframe(df, use_container_width=True)
+                st.dataframe(df)
 
-                st.markdown("### 📌 Day-wise Breakdown")
-                for day in df.index:
-                    st.write(f"**{day}**")
-                    for slot, val in df.loc[day].items():
-                        st.write(f"{slot} → {val if val else 'Free'}")
-                    st.divider()
-
-            # SCORE
             score, conflicts = evaluate_timetable(tt)
-            st.metric("📊 Timetable Score", score)
+            st.metric("Score", score)
 
-            # CONFLICTS
-            st.subheader("🚨 Issues")
-            if conflicts:
-                for c in conflicts:
-                    st.write("⚠️", c)
-            else:
-                st.success("Perfect Week Schedule 💀")
-
-            # FACULTY VIEW
             faculty_tt = build_faculty_timetable(tt)
             st.subheader("👨‍🏫 Faculty Timetable")
             st.write(faculty_tt)
 
-            # EXPORT (FIXED)
-            if st.button("📥 Download Excel"):
-                file = export_to_excel(tt, faculty_tt)
+            # ✅ FIXED DOWNLOAD (NO ERROR)
+            file = export_to_excel(tt, faculty_tt)
 
-                st.download_button(
-                    label="⬇️ Download Timetable",
-                    data=file,
-                    file_name="timetable.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
+            st.download_button(
+                label="⬇️ Download Excel",
+                data=file,
+                file_name="timetable.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
 
         else:
             st.warning("Generate timetable first")
@@ -222,13 +176,8 @@ analyze conflicts, and export data.
         if "tt" in st.session_state:
             tt = st.session_state.tt
 
-            st.subheader("📊 Conflict Heatmap")
-
             heat = sum([df.isnull().astype(int) for df in tt.values()])
 
             fig, ax = plt.subplots()
             sns.heatmap(heat, annot=True, ax=ax)
             st.pyplot(fig)
-
-        else:
-            st.warning("Generate timetable first")
