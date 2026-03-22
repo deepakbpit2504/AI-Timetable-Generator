@@ -17,102 +17,231 @@ h1,h2,h3{color:#00e6e6;}
 
 st.markdown("<h1>🤖 AI Timetable Generator</h1>", unsafe_allow_html=True)
 
-st.info("🧠 Heuristic-based scheduling with iterative optimization")
-
 # ---------- LOGIN ----------
 if not login():
     st.stop()
 
 logout()
 
-# ---------- NAV ----------
-menu = st.sidebar.radio("Navigation", ["Dashboard","Generator","Analytics"])
+# ---------- STEP CONTROL ----------
+if "step" not in st.session_state:
+    st.session_state.step = 1
 
-# ---------- INPUT ----------
-course = st.sidebar.selectbox("Course", ["B.Tech","BBA","MBA","BSc"])
-branch = st.sidebar.selectbox("Branch", ["CSE","IT","ECE","EEE"])
-shift = st.sidebar.selectbox("Shift", ["Shift 1","Shift 2"])
-sections = st.sidebar.multiselect("Sections", ["A","B","C"], default=["A"])
-rooms = st.sidebar.multiselect("Rooms", ["Room 101","Room 102","Lab 1"], default=["Room 101"])
+# ---------- STEP 1 ----------
+if st.session_state.step == 1:
 
-num = st.sidebar.number_input("Subjects",1,10,5)
+    st.header("📘 Step 1: Academic Configuration")
 
-subjects=[]
-faculty_map={}
+    st.info("""
+📚 This step defines the academic structure of your institution.
 
-for i in range(num):
-    s=st.sidebar.text_input(f"Sub {i+1}",key=i)
-    f=st.sidebar.text_input(f"Fac {i+1}",key=i+100)
-    if s:
-        subjects.append(s)
-        faculty_map[s]=f if f else "TBD"
+Why this matters:
+- Helps organize courses and departments  
+- Enables structured scheduling  
+- Supports multi-section management  
+""")
 
-start=st.sidebar.time_input("Start")
-end=st.sidebar.time_input("End")
-duration=st.sidebar.slider("Duration",30,120,60)
+    course = st.selectbox("Course", ["B.Tech","BBA","MBA","BSc"])
+    branch = st.selectbox("Branch", ["CSE","IT","ECE","EEE"])
+    shift = st.selectbox("Shift", ["Shift 1","Shift 2"])
+    sections = st.multiselect("Sections", ["A","B","C"], default=["A"])
+    rooms = st.multiselect("Rooms", ["Room 101","Room 102","Lab 1"], default=["Room 101"])
 
-days=["Mon","Tue","Wed","Thu","Fri"]
+    if st.button("Next ➡️"):
+        st.session_state.course = course
+        st.session_state.branch = branch
+        st.session_state.shift = shift
+        st.session_state.sections = sections
+        st.session_state.rooms = rooms
+        st.session_state.step = 2
+        st.rerun()
 
-# ---------- DASHBOARD ----------
-if menu=="Dashboard":
-    st.metric("Subjects",len(subjects))
-    st.metric("Sections",len(sections))
-    st.metric("Rooms",len(rooms))
+# ---------- STEP 2 ----------
+elif st.session_state.step == 2:
 
-# ---------- GENERATOR ----------
-if menu=="Generator":
+    st.header("👨‍🏫 Step 2: Subjects & Faculty Mapping")
 
-    if st.button("Generate"):
-        slots=create_time_slots(start,end,duration)
-        tt=generate_timetable(sections,days,slots,subjects,faculty_map,rooms)
-        st.session_state.tt=tt
+    st.info("""
+🧠 This step assigns subjects and faculty members.
 
-    if st.button("🔄 Regenerate Better"):
+Advantages:
+- Ensures proper faculty allocation  
+- Prevents teaching conflicts  
+- Maintains academic consistency  
+""")
 
-        best=None
-        min_conf=999
+    num = st.number_input("Number of Subjects",1,10,5)
 
-        for _ in range(5):
-            slots=create_time_slots(start,end,duration)
-            tt=generate_timetable(sections,days,slots,subjects,faculty_map,rooms)
-            conf=detect_conflicts(tt)
+    subjects = []
+    faculty_map = {}
 
-            if len(conf)<min_conf:
-                min_conf=len(conf)
-                best=tt
+    for i in range(num):
+        s = st.text_input(f"Subject {i+1}", key=f"s{i}")
+        f = st.text_input(f"Faculty {i+1}", key=f"f{i}")
 
-        st.session_state.tt=best
-        st.success(f"Optimized! Conflicts: {min_conf}")
+        if s:
+            subjects.append(s)
+            faculty_map[s] = f if f else "TBD"
 
-    if "tt" in st.session_state:
-        tt=st.session_state.tt
+    if st.button("Next ➡️"):
+        st.session_state.subjects = subjects
+        st.session_state.faculty_map = faculty_map
+        st.session_state.step = 3
+        st.rerun()
 
-        for sec,df in tt.items():
-            st.subheader(sec)
-            st.dataframe(df)
+    if st.button("⬅️ Back"):
+        st.session_state.step = 1
+        st.rerun()
 
-        conflicts=detect_conflicts(tt)
+# ---------- STEP 3 ----------
+elif st.session_state.step == 3:
 
-        st.subheader("Conflicts")
-        if conflicts:
-            for c in conflicts:
-                st.write(c)
+    st.header("⏰ Step 3: Time Configuration")
+
+    st.info("""
+⏳ This step defines scheduling constraints.
+
+Benefits:
+- Ensures proper time allocation  
+- Avoids overlapping sessions  
+- Supports flexible scheduling  
+""")
+
+    start = st.time_input("Start Time")
+    end = st.time_input("End Time")
+    duration = st.slider("Period Duration",30,120,60)
+
+    if st.button("Next ➡️"):
+        st.session_state.start = start
+        st.session_state.end = end
+        st.session_state.duration = duration
+        st.session_state.step = 4
+        st.rerun()
+
+    if st.button("⬅️ Back"):
+        st.session_state.step = 2
+        st.rerun()
+
+# ---------- FINAL DASHBOARD ----------
+elif st.session_state.step == 4:
+
+    st.header("🚀 Timetable Dashboard")
+
+    st.info("""
+📊 This dashboard allows you to generate and analyze timetables.
+
+Key Capabilities:
+- Smart timetable generation  
+- Conflict detection  
+- Resource optimization  
+""")
+
+    menu = st.radio("Choose Action", ["Generate","View Timetable","Analytics"])
+
+    days = ["Mon","Tue","Wed","Thu","Fri"]
+
+    # ---------- GENERATE ----------
+    if menu == "Generate":
+
+        st.write("⚡ Generate a smart timetable using heuristic optimization")
+
+        if st.button("🚀 Generate Timetable"):
+
+            slots = create_time_slots(
+                st.session_state.start,
+                st.session_state.end,
+                st.session_state.duration
+            )
+
+            tt = generate_timetable(
+                st.session_state.sections,
+                days,
+                slots,
+                st.session_state.subjects,
+                st.session_state.faculty_map,
+                st.session_state.rooms
+            )
+
+            st.session_state.tt = tt
+            st.success("Timetable Generated!")
+            st.balloons()
+
+        if st.button("🔄 Regenerate Better"):
+
+            best = None
+            min_conf = 999
+
+            for _ in range(5):
+                slots = create_time_slots(
+                    st.session_state.start,
+                    st.session_state.end,
+                    st.session_state.duration
+                )
+
+                temp = generate_timetable(
+                    st.session_state.sections,
+                    days,
+                    slots,
+                    st.session_state.subjects,
+                    st.session_state.faculty_map,
+                    st.session_state.rooms
+                )
+
+                conf = detect_conflicts(temp)
+
+                if len(conf) < min_conf:
+                    min_conf = len(conf)
+                    best = temp
+
+            st.session_state.tt = best
+            st.success(f"Optimized! Conflicts: {min_conf}")
+
+    # ---------- VIEW ----------
+    elif menu == "View Timetable":
+
+        st.write("📅 View generated timetable with conflict insights")
+
+        if "tt" in st.session_state:
+            for sec, df in st.session_state.tt.items():
+                st.subheader(f"Section {sec}")
+                st.dataframe(df)
+
+            conflicts = detect_conflicts(st.session_state.tt)
+
+            st.subheader("🚨 Conflicts")
+            if conflicts:
+                for c in conflicts:
+                    st.write(c)
+            else:
+                st.success("No conflicts!")
+
+            if st.button("Export"):
+                export_to_excel(st.session_state.tt)
+                with open("timetable.xlsx","rb") as f:
+                    st.download_button("Download", f)
+
         else:
-            st.success("No conflicts!")
+            st.warning("Generate timetable first")
 
-        if st.button("Export"):
-            export_to_excel(tt)
-            with open("timetable.xlsx","rb") as f:
-                st.download_button("Download",f)
+    # ---------- ANALYTICS ----------
+    elif menu == "Analytics":
 
-# ---------- ANALYTICS ----------
-if menu=="Analytics":
-    if "tt" in st.session_state:
-        tt=st.session_state.tt
-        rc={}
-        for df in tt.values():
-            for val in df.values.flatten():
-                if val:
-                    r=val.split("[")[-1].replace("]","")
-                    rc[r]=rc.get(r,0)+1
-        st.bar_chart(pd.DataFrame.from_dict(rc,orient='index',columns=['Usage']))
+        st.write("📊 Analyze room utilization and scheduling efficiency")
+
+        if "tt" in st.session_state:
+            tt = st.session_state.tt
+
+            room_count = {}
+
+            for df in tt.values():
+                for val in df.values.flatten():
+                    if val:
+                        room = val.split("[")[-1].replace("]", "")
+                        room_count[room] = room_count.get(room, 0) + 1
+
+            st.bar_chart(pd.DataFrame.from_dict(
+                room_count, orient='index', columns=['Usage']
+            ))
+
+        else:
+            st.warning("Generate timetable first")
