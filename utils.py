@@ -5,19 +5,20 @@ def create_time_slots(start, end, duration):
     current = start
 
     while current < end:
-        next_minutes = current.hour * 60 + current.minute + duration
-        hour = next_minutes // 60
-        minute = next_minutes % 60
+        total = current.hour*60 + current.minute + duration
+        h = total // 60
+        m = total % 60
 
-        slot = f"{current.strftime('%H:%M')} - {hour:02}:{minute:02}"
-        slots.append(slot)
-
-        current = current.replace(hour=hour, minute=minute)
+        slots.append(f"{current.strftime('%H:%M')} - {h:02}:{m:02}")
+        current = current.replace(hour=h, minute=m)
 
     return slots
 
 
-def export_to_excel(timetable):
+def export_to_excel(tt, faculty_tt):
     with pd.ExcelWriter("timetable.xlsx") as writer:
-        for section, df in timetable.items():
-            df.to_excel(writer, sheet_name=f"Section_{section}")
+
+        for sec, df in tt.items():
+            df.to_excel(writer, sheet_name=sec)
+
+        pd.DataFrame(dict([(k, pd.Series(v)) for k,v in faculty_tt.items()])).to_excel(writer, sheet_name="Faculty")
