@@ -12,13 +12,13 @@ def login():
     if not st.session_state.logged_in:
         st.markdown("## 🔐 Login Page")
 
-        username = st.text_input("Username")
-        password = st.text_input("Password", type="password")
+        u = st.text_input("Username")
+        p = st.text_input("Password", type="password")
 
         if st.button("Login"):
-            if username in users and users[username] == password:
+            if u in users and users[u] == p:
                 st.session_state.logged_in = True
-                st.success("Login successful!")
+                st.success("Login successful")
                 st.rerun()
             else:
                 st.error("Invalid credentials")
@@ -26,8 +26,7 @@ def login():
         return False
     return True
 
-
 def logout():
-    if st.sidebar.button("🚪 Logout"):
+    if st.sidebar.button("Logout"):
         st.session_state.logged_in = False
         st.rerun()
