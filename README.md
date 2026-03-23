@@ -16,4 +16,45 @@ An intelligent academic scheduling system that automatically generates optimized
 - 📥 Export timetable to Excel  
 
 ---
+## 🖥️ Features Preview
 
+### 🏠 Welcome Page
+![Welcome](assets/welcome.png)
+
+### 🔐 Login Page
+![Login](assets/login.png)
+
+### 📘 Course Selection
+![Course](assets/course.png)
+
+### 👨‍🏫 Subjects & Faculty
+![Subjects](assets/subjects.png)
+
+### ⏰ Time Configuration
+![Time](assets/time.png)
+
+### ⚙️ Generate Timetable
+![Generate](assets/generate.png)
+
+### 📊 View Timetable
+![View](assets/view.png)
+
+### 📈 Analytics
+![Analytics](assets/analytics.png)
+
+---
+
+## 🛠️ Tech Stack
+
+- Python  
+- Streamlit  
+- Pandas  
+- Matplotlib  
+
+---
+
+## ▶️ How to Run
+
+```bash
+pip install streamlit pandas matplotlib openpyxl
+streamlit run app.py
