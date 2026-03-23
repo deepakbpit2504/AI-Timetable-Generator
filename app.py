@@ -1,187 +1,176 @@
 import streamlit as st
 import pandas as pd
+import random
 import matplotlib.pyplot as plt
-
-from auth import login, logout
-from scheduler import generate_timetable, evaluate_timetable, build_faculty_timetable
-from utils import create_time_slots, export_to_excel
+from io import BytesIO
 
 st.set_page_config(layout="wide")
 
-# -------- LOGIN CONTROL --------
-if not login():
-    st.stop()
+# 💀 FORCE START FROM WELCOME EVERY RUN
+if "initialized" not in st.session_state:
+    st.session_state.clear()
+    st.session_state.initialized = True
+    st.session_state.page = "welcome"
+    st.session_state.logged_in = False
 
-logout()
 
-# -------- STEP CONTROL --------
-if "step" not in st.session_state:
-    st.session_state.step = 1
+# -------- UTILS --------
+def create_time_slots(start, end, duration):
+    slots = []
+    current = start
 
-# -------- STEP 1 --------
-if st.session_state.step == 1:
+    while current < end:
+        total = current.hour*60 + current.minute + duration
+        h = total // 60
+        m = total % 60
+        slots.append(f"{current.strftime('%H:%M')} - {h:02}:{m:02}")
+        current = current.replace(hour=h, minute=m)
 
-    st.header("📘 Academic Setup")
+    return slots
 
-    course = st.selectbox("Course", ["B.Tech","BBA","MBA","BSc"])
-    branch = st.selectbox("Branch", ["CSE","IT","ECE","EEE"])
-    sections = st.multiselect("Sections", ["A","B","C"], default=["A"])
 
-    rooms = {"Room 101":60, "Room 102":40, "Lab 1":30}
+def generate_timetable(sections, days, slots, subjects, faculty_map):
+    tt = {sec: pd.DataFrame("", index=days, columns=slots) for sec in sections}
 
-    students = {}
-    for sec in sections:
-        students[sec] = st.number_input(f"Students {sec}", 10, 100, 60)
+    for sub, hrs in subjects.items():
+        for _ in range(hrs):
+            sec = random.choice(sections)
+            day = random.choice(days)
+            slot = random.choice(slots)
 
-    combined = st.multiselect("Combined Sections", sections)
+            tt[sec].loc[day, slot] = f"{sub}\n({faculty_map[sub]})"
 
-    if st.button("Next"):
-        st.session_state.update(locals())
-        st.session_state.step = 2
+    return tt
+
+
+def evaluate(tt):
+    score = 0
+    for sec, df in tt.items():
+        score += (df == "").sum().sum()
+    return score
+
+
+def export_excel(tt):
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        for sec, df in tt.items():
+            df.to_excel(writer, sheet_name=sec)
+    output.seek(0)
+    return output.getvalue()
+
+
+# -------- PAGE 1 --------
+if st.session_state.page == "welcome":
+
+    st.title("🤖 AI Timetable Generator")
+
+    st.markdown("""
+## 🚀 Intelligent Academic Scheduling System
+
+Automatically generate optimized timetables.
+
+### 🎯 Advantages
+- Saves time  
+- Reduces errors  
+- Handles complexity  
+
+### 📚 Uses
+- Colleges  
+- Schools  
+- Coaching  
+
+---
+""")
+
+    if st.button("➡️ Continue"):
+        st.session_state.page = "login"
         st.rerun()
 
-# -------- STEP 2 --------
-elif st.session_state.step == 2:
 
-    st.header("👨‍🏫 Subjects")
+# -------- PAGE 2 --------
+elif st.session_state.page == "login":
 
-    num = st.number_input("Number of Subjects", 1, 10, 5)
+    st.title("🔐 Login")
+
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
+
+    if st.button("Login"):
+        if username == "admin" and password == "1234":
+            st.session_state.logged_in = True
+            st.session_state.page = "app"
+            st.rerun()
+        else:
+            st.error("Invalid credentials")
+
+
+# -------- PAGE 3 --------
+elif st.session_state.page == "app":
+
+    if not st.session_state.logged_in:
+        st.session_state.page = "login"
+        st.rerun()
+
+    st.title("🚀 Timetable Dashboard")
+
+    # -------- INPUT --------
+    sections = st.multiselect("Sections", ["A","B","C"], default=["A"])
+    days = ["Mon","Tue","Wed","Thu","Fri"]
 
     subjects = {}
-    faculty_map = {}
+    faculty = {}
+
+    num = st.number_input("Subjects", 1, 10, 3)
 
     for i in range(num):
-        name = st.text_input(f"Subject {i}")
-        theory = st.number_input(f"Theory Hours {i}", 1, 5, 3)
-        practical = st.number_input(f"Practical Hours {i}", 0, 5, 1)
+        sub = st.text_input(f"Subject {i}")
+        hrs = st.number_input(f"Hours {i}", 1, 5, 2)
         fac = st.text_input(f"Faculty {i}")
 
-        if name:
-            subjects[name] = {"theory": theory, "practical": practical}
-            faculty_map[name] = fac
-
-    if st.button("Next"):
-        st.session_state.subjects = subjects
-        st.session_state.faculty_map = faculty_map
-        st.session_state.step = 3
-        st.rerun()
-
-# -------- STEP 3 --------
-elif st.session_state.step == 3:
-
-    st.header("⏰ Timing Setup")
+        if sub:
+            subjects[sub] = hrs
+            faculty[sub] = fac
 
     start = st.time_input("Start Time")
     end = st.time_input("End Time")
-    duration = st.slider("Period Duration (minutes)", 30, 120, 60)
+    duration = st.slider("Duration", 30, 120, 60)
 
-    if st.button("Next"):
-        st.session_state.start = start
-        st.session_state.end = end
-        st.session_state.duration = duration
-        st.session_state.step = 4
-        st.rerun()
-
-# -------- FINAL DASHBOARD --------
-elif st.session_state.step == 4:
-
-    st.header("🚀 Timetable Dashboard")
-
-    menu = st.selectbox("Menu", ["Generate","View","Analytics"])
-
-    days = ["Mon","Tue","Wed","Thu","Fri"]
-    slots = create_time_slots(
-        st.session_state.start,
-        st.session_state.end,
-        st.session_state.duration
-    )
-
-    # 🔒 LOCK SLOTS
-    locked = st.multiselect(
-        "🔒 Lock Slots",
-        [f"{d}-{s}" for d in days for s in slots]
-    )
+    slots = create_time_slots(start, end, duration)
 
     # -------- GENERATE --------
-    if menu == "Generate":
+    if st.button("Generate Timetable"):
 
-        if st.button("💀 Optimize Timetable"):
+        tt = generate_timetable(sections, days, slots, subjects, faculty)
+        st.session_state.tt = tt
 
-            best = None
-            best_score = float("inf")
+    # -------- DISPLAY --------
+    if "tt" in st.session_state:
 
-            for _ in range(15):
-                tt = generate_timetable(
-                    st.session_state.sections,
-                    days,
-                    slots,
-                    st.session_state.subjects,
-                    st.session_state.faculty_map,
-                    st.session_state.rooms,
-                    st.session_state.students,
-                    st.session_state.combined,
-                    locked
-                )
+        tt = st.session_state.tt
 
-                score, _ = evaluate_timetable(tt)
+        for sec, df in tt.items():
+            st.subheader(f"Section {sec}")
+            st.dataframe(df)
 
-                if score < best_score:
-                    best_score = score
-                    best = tt
+        score = evaluate(tt)
+        st.metric("Score", score)
 
-            st.session_state.tt = best
-            st.success(f"🔥 Best Score: {best_score}")
+        file = export_excel(tt)
 
-    # -------- VIEW --------
-    elif menu == "View":
+        st.download_button("Download Excel", file, "timetable.xlsx")
 
-        if "tt" in st.session_state:
-            tt = st.session_state.tt
+        # -------- ANALYTICS --------
+        counts = {}
 
-            for sec, df in tt.items():
-                st.subheader(f"Section {sec}")
-                st.dataframe(df, use_container_width=True)
+        for sec, df in tt.items():
+            for d in df.index:
+                counts[d] = counts.get(d, 0) + (df.loc[d] != "").sum()
 
-            score, _ = evaluate_timetable(tt)
-            st.metric("📊 Score", score)
+        fig, ax = plt.subplots()
+        ax.bar(counts.keys(), counts.values())
+        st.pyplot(fig)
 
-            faculty_tt = build_faculty_timetable(tt)
-            file = export_to_excel(tt, faculty_tt)
-
-            st.download_button(
-                label="⬇️ Download Excel",
-                data=file,
-                file_name="timetable.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
-
-    # -------- ANALYTICS --------
-    elif menu == "Analytics":
-
-        if "tt" in st.session_state:
-            tt = st.session_state.tt
-
-            day_counts = {}
-
-            for sec, df in tt.items():
-                for day in df.index:
-                    count = (df.loc[day] != "").sum()
-                    day_counts[day] = day_counts.get(day, 0) + count
-
-            data = pd.DataFrame({
-                "Day": list(day_counts.keys()),
-                "Lectures": list(day_counts.values())
-            })
-
-            st.subheader("📊 Lectures per Day")
-
-            fig, ax = plt.subplots()
-            ax.bar(data["Day"], data["Lectures"])
-            ax.set_xlabel("Day")
-            ax.set_ylabel("Number of Lectures")
-            ax.set_title("Lectures Distribution")
-
-            st.pyplot(fig)
-
-        else:
-            st.warning("Generate timetable first ⚠️")
+    # -------- LOGOUT --------
+    if st.button("Logout"):
+        st.session_state.clear()
+        st.rerun()
