@@ -56,19 +56,37 @@ def export_excel(tt):
 if st.session_state.page == "welcome":
 
     st.title("🤖 AI Timetable Generator")
+    st.subheader("Intelligent Academic Scheduling System")
 
     st.markdown("""
-### Intelligent Academic Scheduling System
+---
 
-- Avoid clashes  
-- Save time  
-- Optimize schedules  
+## 🚀 Advantages
+
+1. ⏱️ Saves significant time compared to manual scheduling  
+2. 📉 Minimizes human errors and conflicts  
+3. ⚡ Efficient handling of multiple sections and subjects  
+4. 📊 Balanced distribution of workload among faculty  
+5. 🧠 Smart and automated timetable optimization  
+
+---
+
+## 📚 Uses
+
+1. 🏫 Colleges and Universities for semester planning  
+2. 🏫 Schools for class-wise scheduling  
+3. 📖 Coaching Institutes for batch management  
+4. 👨‍🏫 Faculty timetable organization  
+5. 📅 Managing complex academic structures easily  
+
+---
+
+### 👉 Click below to get started
 """)
 
     if st.button("➡️ Continue"):
         st.session_state.page = "login"
         st.rerun()
-
 
 # -------- PAGE 2: LOGIN --------
 elif st.session_state.page == "login":
