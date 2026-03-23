@@ -8,10 +8,7 @@ from utils import create_time_slots, export_to_excel
 
 st.set_page_config(layout="wide")
 
-# Optional: hide full error trace
-st.set_option('client.showErrorDetails', False)
-
-# -------- LOGIN --------
+# -------- LOGIN CONTROL --------
 if not login():
     st.stop()
 
@@ -34,7 +31,7 @@ if st.session_state.step == 1:
 
     students = {}
     for sec in sections:
-        students[sec] = st.number_input(f"Students {sec}", 10,100,60)
+        students[sec] = st.number_input(f"Students {sec}", 10, 100, 60)
 
     combined = st.multiselect("Combined Sections", sections)
 
@@ -88,7 +85,7 @@ elif st.session_state.step == 3:
 # -------- FINAL DASHBOARD --------
 elif st.session_state.step == 4:
 
-    st.header("🚀 Dashboard")
+    st.header("🚀 Timetable Dashboard")
 
     menu = st.selectbox("Menu", ["Generate","View","Analytics"])
 
@@ -151,13 +148,12 @@ elif st.session_state.step == 4:
             faculty_tt = build_faculty_timetable(tt)
             file = export_to_excel(tt, faculty_tt)
 
-            if file:
-                st.download_button(
-                    label="⬇️ Download Excel",
-                    data=file,
-                    file_name="timetable.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
+            st.download_button(
+                label="⬇️ Download Excel",
+                data=file,
+                file_name="timetable.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
 
     # -------- ANALYTICS --------
     elif menu == "Analytics":
@@ -184,6 +180,7 @@ elif st.session_state.step == 4:
             ax.set_xlabel("Day")
             ax.set_ylabel("Number of Lectures")
             ax.set_title("Lectures Distribution")
+
             st.pyplot(fig)
 
         else:
