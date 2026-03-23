@@ -52,7 +52,48 @@ An intelligent academic scheduling system that automatically generates optimized
 - Matplotlib  
 
 ---
+## 📊 Output
 
+- Section-wise Timetable  
+- Faculty Assignment View  
+- Room Utilization Chart  
+- Excel Export  
+
+---
+
+## 🧪 Future Enhancements
+
+- Google OR-Tools integration  
+- AI-based optimization  
+- Lab scheduling with constraints  
+- Cloud deployment  
+- Mobile-friendly UI  
+
+---
+
+## 🎯 Use Cases
+
+- Colleges & Universities  
+- Schools with multiple sections  
+- Coaching Institutes  
+
+---
+
+## 👨‍💻 Author
+
+Deepak Dudeja  
+B.Tech Student | Developer  
+
+---
+
+## ⭐ Conclusion
+
+This project demonstrates:
+- Real-world problem solving  
+- Constraint-based system design  
+- Scalable architecture  
+
+---
 ## ▶️ How to Run
 
 ```bash
