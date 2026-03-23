@@ -1,9 +1,7 @@
 import streamlit as st
 
-# -------- USERS --------
 USERS = {"admin": "1234"}
 
-# -------- LOGIN FUNCTION --------
 def login():
 
     if "logged_in" not in st.session_state:
@@ -11,30 +9,26 @@ def login():
 
     if not st.session_state.logged_in:
 
-        # 🎨 PAGE LAYOUT
-        col1, col2 = st.columns([1.5, 1])
+        # FULL PAGE (NOT SPLIT)
+        st.title("🤖 AI Timetable Generator")
 
-        # -------- LEFT SIDE (INFO) --------
-        with col1:
-            st.title("🤖 AI Timetable Generator")
+        st.markdown("""
+### 🚀 Intelligent Academic Scheduling System
 
-            st.markdown("""
-### 🚀 Smart Academic Scheduling System
-
-Generate **conflict-free, optimized timetables** using intelligent algorithms.
+This system helps institutions automatically generate **conflict-free and optimized timetables**.
 
 ---
 
-### 🎯 Advantages
-- ⏱️ Saves huge manual effort  
-- 📉 Eliminates scheduling conflicts  
-- ⚡ Handles multi-section complexity  
+## 🎯 Advantages
+- ⏱️ Saves time compared to manual scheduling  
+- 📉 Reduces human errors  
+- ⚡ Handles multiple sections easily  
 - 📊 Balanced workload distribution  
-- 🧠 Smart optimization with scoring  
+- 🧠 Smart optimization using scoring  
 
 ---
 
-### 📚 Uses
+## 📚 Uses
 - 🏫 Colleges & Universities  
 - 🏫 Schools  
 - 📖 Coaching Institutes  
@@ -42,51 +36,37 @@ Generate **conflict-free, optimized timetables** using intelligent algorithms.
 
 ---
 
-### 🔐 Why Login is Required?
+## 🔐 Why Login?
 
-Login ensures that:
-- 🔒 Only authorized users access the system  
-- 💾 User data and configurations are सुरक्षित (secure)  
-- 🧑‍💻 Personalized timetable generation is possible  
-- 📊 Data integrity and privacy are maintained  
-
-👉 This makes the system **safe, reliable, and user-specific**.
+Login is required to:
+- 🔒 Ensure secure access  
+- 💾 Protect user data  
+- 👤 Provide personalized timetable generation  
+- 📊 Maintain system integrity  
 
 ---
 
-💡 *Design smarter schedules, faster than ever.*
+### 🔐 Login to Continue
 """)
 
-        # -------- RIGHT SIDE (LOGIN BOX) --------
-        with col2:
-            st.markdown("## 🔐 Login Portal")
+        # LOGIN FORM BELOW CONTENT
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
 
-            st.markdown("""
-Enter your credentials to access the system.
-
-- Authorized access only  
-- Secure authentication  
-- Quick and easy login  
-""")
-
-            username = st.text_input("Username")
-            password = st.text_input("Password", type="password")
-
-            if st.button("Login", use_container_width=True):
-                if username in USERS and USERS[username] == password:
-                    st.session_state.logged_in = True
-                    st.success("Login successful ✅")
-                    st.rerun()
-                else:
-                    st.error("Invalid credentials ❌")
+        if st.button("Login"):
+            if username in USERS and USERS[username] == password:
+                st.session_state.logged_in = True
+                st.success("Login successful ✅")
+                st.rerun()
+            else:
+                st.error("Invalid credentials ❌")
 
         return False
 
     return True
 
 
-# -------- LOGOUT --------
 def logout():
-    if st.sidebar.button("🚪 Logout"):
+    if st.sidebar.button("Logout"):
         st.session_state.logged_in = False
         st.rerun()
