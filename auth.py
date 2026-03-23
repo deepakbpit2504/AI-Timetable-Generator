@@ -1,7 +1,9 @@
 import streamlit as st
 
+# -------- USERS --------
 USERS = {"admin": "1234"}
 
+# -------- LOGIN FUNCTION --------
 def login():
 
     if "logged_in" not in st.session_state:
@@ -9,26 +11,27 @@ def login():
 
     if not st.session_state.logged_in:
 
-        # FULL PAGE (NOT SPLIT)
+        # FULL PAGE (WELCOME + LOGIN TOGETHER)
         st.title("🤖 AI Timetable Generator")
 
         st.markdown("""
-### 🚀 Intelligent Academic Scheduling System
+## 🚀 Intelligent Academic Scheduling System
 
-This system helps institutions automatically generate **conflict-free and optimized timetables**.
+This system automatically generates **optimized and conflict-free timetables** 
+for educational institutions.
 
 ---
 
-## 🎯 Advantages
+### 🎯 Advantages
 - ⏱️ Saves time compared to manual scheduling  
 - 📉 Reduces human errors  
-- ⚡ Handles multiple sections easily  
+- ⚡ Handles multiple sections efficiently  
 - 📊 Balanced workload distribution  
 - 🧠 Smart optimization using scoring  
 
 ---
 
-## 📚 Uses
+### 📚 Uses
 - 🏫 Colleges & Universities  
 - 🏫 Schools  
 - 📖 Coaching Institutes  
@@ -36,20 +39,19 @@ This system helps institutions automatically generate **conflict-free and optimi
 
 ---
 
-## 🔐 Why Login?
+### 🔐 Why Login?
 
-Login is required to:
-- 🔒 Ensure secure access  
-- 💾 Protect user data  
-- 👤 Provide personalized timetable generation  
-- 📊 Maintain system integrity  
+Login ensures:
+- 🔒 Secure and authorized access  
+- 💾 Protection of user data  
+- 👤 Personalized timetable generation  
+- 📊 System integrity and reliability  
 
 ---
-
-### 🔐 Login to Continue
 """)
 
-        # LOGIN FORM BELOW CONTENT
+        st.markdown("## 🔐 Login to Continue")
+
         username = st.text_input("Username")
         password = st.text_input("Password", type="password")
 
@@ -66,7 +68,8 @@ Login is required to:
     return True
 
 
+# -------- LOGOUT --------
 def logout():
-    if st.sidebar.button("Logout"):
+    if st.sidebar.button("🚪 Logout"):
         st.session_state.logged_in = False
         st.rerun()
