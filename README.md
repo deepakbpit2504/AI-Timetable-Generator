@@ -19,7 +19,7 @@ An intelligent academic scheduling system that automatically generates optimized
 ## 🖥️ Features Preview
 
 ### 🏠 Welcome Page
-![Welcome](assets/welcome.png)
+![Welcome](welcome.png)
 
 ### 🔐 Login Page
 ![Login](assets/login.png)
