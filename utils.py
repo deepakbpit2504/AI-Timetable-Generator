@@ -1,12 +1,13 @@
-import pandas as pd
 from io import BytesIO
+import pandas as pd
 
+# -------- CREATE TIME SLOTS --------
 def create_time_slots(start, end, duration):
     slots = []
     current = start
 
     while current < end:
-        total = current.hour*60 + current.minute + duration
+        total = current.hour * 60 + current.minute + duration
         h = total // 60
         m = total % 60
 
@@ -16,18 +17,18 @@ def create_time_slots(start, end, duration):
     return slots
 
 
+# -------- EXPORT TO EXCEL (FIXED) --------
 def export_to_excel(tt, faculty_tt):
     output = BytesIO()
 
-    writer = pd.ExcelWriter(output, engine='openpyxl')
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        for sec, df in tt.items():
+            df.to_excel(writer, sheet_name=f"Section_{sec}")
 
-    for sec, df in tt.items():
-        df.to_excel(writer, sheet_name=f"Section_{sec}")
+        faculty_df = pd.DataFrame(
+            dict([(k, pd.Series(v)) for k, v in faculty_tt.items()])
+        )
+        faculty_df.to_excel(writer, sheet_name="Faculty")
 
-    faculty_df = pd.DataFrame(dict([(k, pd.Series(v)) for k,v in faculty_tt.items()]))
-    faculty_df.to_excel(writer, sheet_name="Faculty")
-
-    writer.close()
     output.seek(0)
-
-    return output
+    return output.getvalue()   # ✅ IMPORTANT FIX
