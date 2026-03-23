@@ -1,37 +1,34 @@
 import streamlit as st
 
-# -------- USER STORAGE --------
+# -------- INIT --------
 if "users" not in st.session_state:
     st.session_state.users = {"admin": "1234"}
 
-# -------- INITIAL STATE --------
-if "page" not in st.session_state:
-    st.session_state.page = "landing"   # ✅ START FROM WELCOME
-
-if "logged_in" not in st.session_state:
+if "initialized" not in st.session_state:
+    st.session_state.page = "landing"
     st.session_state.logged_in = False
+    st.session_state.initialized = True
 
 
-# -------- PAGE 1: WELCOME --------
+# -------- LANDING --------
 def landing_page():
     st.title("🤖 AI Timetable Generator")
 
     st.markdown("""
-### 🚀 Intelligent Scheduling System
+### 🚀 Intelligent Academic Scheduling System
 
-Generate **conflict-free, optimized academic timetables** easily.
+Generate optimized, conflict-free timetables automatically.
 
 ### 🎯 Advantages:
 - Saves time ⏱️
-- Reduces manual errors 📉
+- Reduces human errors 📉
 - Handles complex scheduling ⚡
 - Balanced workload 📊
 
 ### 🧠 Uses:
-- Colleges & Universities
-- Schools & Institutes
-
----
+- Colleges
+- Schools
+- Coaching institutes
 """)
 
     col1, col2 = st.columns(2)
@@ -45,20 +42,20 @@ Generate **conflict-free, optimized academic timetables** easily.
         st.rerun()
 
 
-# -------- PAGE 2: REGISTER --------
+# -------- REGISTER --------
 def register_page():
     st.markdown("## 📝 Register")
 
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
+    u = st.text_input("Username")
+    p = st.text_input("Password", type="password")
 
     if st.button("Register"):
-        if username in st.session_state.users:
+        if u in st.session_state.users:
             st.error("User already exists ❌")
-        elif username == "" or password == "":
+        elif u == "" or p == "":
             st.warning("Fill all fields ⚠️")
         else:
-            st.session_state.users[username] = password
+            st.session_state.users[u] = p
             st.success("Account created 🎉")
             st.session_state.page = "login"
             st.rerun()
@@ -68,17 +65,17 @@ def register_page():
         st.rerun()
 
 
-# -------- PAGE 3: LOGIN --------
+# -------- LOGIN --------
 def login_page():
     st.markdown("## 🔐 Login")
 
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
+    u = st.text_input("Username")
+    p = st.text_input("Password", type="password")
 
     if st.button("Login"):
-        if username in st.session_state.users and st.session_state.users[username] == password:
+        if u in st.session_state.users and st.session_state.users[u] == p:
             st.session_state.logged_in = True
-            st.success("Login Successful ✅")
+            st.success("Login successful ✅")
             st.rerun()
         else:
             st.error("Invalid credentials ❌")
@@ -88,29 +85,25 @@ def login_page():
         st.rerun()
 
 
-# -------- MAIN CONTROL --------
+# -------- MAIN --------
 def login():
-
-    # 👉 If NOT logged in → show pages
     if not st.session_state.logged_in:
 
         if st.session_state.page == "landing":
             landing_page()
-
         elif st.session_state.page == "register":
             register_page()
-
         elif st.session_state.page == "login":
             login_page()
 
-        return False   # ❌ STOP app here
+        return False
 
-    return True  # ✅ Continue app
+    return True
 
 
 # -------- LOGOUT --------
 def logout():
     if st.sidebar.button("Logout"):
         st.session_state.logged_in = False
-        st.session_state.page = "landing"  # back to welcome
+        st.session_state.page = "landing"
         st.rerun()
