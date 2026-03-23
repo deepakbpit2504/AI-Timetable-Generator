@@ -50,7 +50,7 @@ def generate_tt(sections, days, slots, subjects, faculty, locked):
                     faculty_schedule[(fac, day, slot)] = True
                     break
 
-        # PRACTICAL
+        # PRACTICAL (CONSECUTIVE)
         for _ in range(data["practical"]):
             for _ in range(30):
                 sec = random.choice(sections)
@@ -130,9 +130,9 @@ if st.session_state.page == "welcome":
 ## 📚 Uses
 - Colleges  
 - Schools  
-- Coaching  
+- Coaching institutes  
 - Faculty scheduling  
-- Complex timetables  
+- Complex timetable handling  
 """)
 
     if st.button("➡️ Continue"):
@@ -152,9 +152,10 @@ elif st.session_state.page == "login":
         if user == "admin" and pwd == "1234":
             st.session_state.logged_in = True
             st.session_state.page = "app"
+            st.session_state.step = 1
             st.rerun()
         else:
-            st.error("Invalid credentials")
+            st.error("Invalid credentials ❌")
 
 
 # -------- MAIN APP --------
@@ -166,42 +167,28 @@ elif st.session_state.page == "app":
 
     st.title("📊 Timetable System")
 
-    # -------- STEPS --------
+    # -------- STEP 1 --------
     if st.session_state.step == 1:
 
-    st.header("Course Setup")
+        st.header("Course Setup")
 
-    course = st.selectbox("Course", ["B.Tech","BBA","MBA","BSc"])
-    branch = st.selectbox("Branch", ["CSE","IT","ECE","EEE"])
-    shift = st.selectbox("Shift", ["Shift 1","Shift 2"])
-
-    sections = st.multiselect("Sections", ["A","B","C"], default=["A"])
-
-    st.markdown("""
-### 📘 Why this step?
-This helps define the academic structure:
-- Course determines curriculum  
-- Branch defines specialization  
-- Shift handles morning/evening batches  
-- Sections divide students  
-""")
-
-    if st.button("Next"):
-        st.session_state.course = course
-        st.session_state.branch = branch
-        st.session_state.shift = shift
-        st.session_state.sections = sections
-        st.session_state.step = 2
-        st.rerun()
+        course = st.selectbox("Course", ["B.Tech","BBA","MBA","BSc"])
+        branch = st.selectbox("Branch", ["CSE","IT","ECE","EEE"])
+        shift = st.selectbox("Shift", ["Shift 1","Shift 2"])
+        sections = st.multiselect("Sections", ["A","B","C"], default=["A"])
 
         if st.button("Next"):
+            st.session_state.course = course
+            st.session_state.branch = branch
+            st.session_state.shift = shift
             st.session_state.sections = sections
             st.session_state.step = 2
             st.rerun()
 
+    # -------- STEP 2 --------
     elif st.session_state.step == 2:
 
-        st.header("Subjects")
+        st.header("Subjects & Faculty")
 
         num = st.number_input("Subjects", 1, 10, 3)
 
@@ -223,13 +210,14 @@ This helps define the academic structure:
             st.session_state.step = 3
             st.rerun()
 
+    # -------- STEP 3 --------
     elif st.session_state.step == 3:
 
         st.header("Time Setup")
 
-        start = st.time_input("Start")
-        end = st.time_input("End")
-        duration = st.slider("Duration", 30, 120, 60)
+        start = st.time_input("Start Time")
+        end = st.time_input("End Time")
+        duration = st.slider("Slot Duration", 30, 120, 60)
 
         if st.button("Next"):
             st.session_state.start = start
@@ -238,11 +226,13 @@ This helps define the academic structure:
             st.session_state.step = 4
             st.rerun()
 
+    # -------- STEP 4 --------
     elif st.session_state.step == 4:
 
         st.header("Dashboard")
 
         days = ["Mon","Tue","Wed","Thu","Fri"]
+
         slots = create_slots(
             st.session_state.start,
             st.session_state.end,
@@ -287,16 +277,17 @@ This helps define the academic structure:
                 tt = st.session_state.tt
 
                 for sec, df in tt.items():
+                    st.subheader(f"Section {sec}")
                     st.dataframe(df)
 
                 conflicts = detect_conflicts(tt)
                 if conflicts:
                     st.error(conflicts)
                 else:
-                    st.success("No conflicts")
+                    st.success("✅ No conflicts")
 
                 file = export_excel(tt)
-                st.download_button("Download Excel", file, "tt.xlsx")
+                st.download_button("Download Excel", file, "timetable.xlsx")
 
         # -------- ANALYTICS --------
         with tab3:
@@ -310,8 +301,9 @@ This helps define the academic structure:
 
                 fig, ax = plt.subplots()
                 ax.bar(counts.keys(), counts.values())
+                ax.set_title("Lectures per Day")
                 st.pyplot(fig)
 
-        if st.button("Restart"):
+        if st.button("🔄 Restart"):
             st.session_state.clear()
             st.rerun()
