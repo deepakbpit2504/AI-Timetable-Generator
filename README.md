@@ -22,25 +22,25 @@ An intelligent academic scheduling system that automatically generates optimized
 ![Welcome](welcome.png)
 
 ### 🔐 Login Page
-![Login](assets/login.png)
+![Login](login.png)
 
 ### 📘 Course Selection
-![Course](assets/course.png)
+![Course](course.png)
 
 ### 👨‍🏫 Subjects & Faculty
-![Subjects](assets/subjects.png)
+![Subjects](subjects.png)
 
 ### ⏰ Time Configuration
-![Time](assets/time.png)
+![Time](time.png)
 
 ### ⚙️ Generate Timetable
-![Generate](assets/generate.png)
+![Generate](generate.png)
 
 ### 📊 View Timetable
-![View](assets/view.png)
+![View](view.png)
 
 ### 📈 Analytics
-![Analytics](assets/analytics.png)
+![Analytics](analytics.png)
 
 ---
 
