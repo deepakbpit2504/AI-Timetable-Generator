@@ -9,15 +9,12 @@ st.set_page_config(layout="wide")
 # -------- INIT --------
 if "page" not in st.session_state:
     st.session_state.page = "welcome"
-
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
-
 if "step" not in st.session_state:
     st.session_state.step = 1
 
-
-# -------- UTIL --------
+# -------- UTILS --------
 def create_slots(start, end, duration):
     slots = []
     current = start
@@ -30,7 +27,7 @@ def create_slots(start, end, duration):
     return slots
 
 
-def generate_tt(sections, days, slots, subjects, faculty):
+def generate_tt(sections, days, slots, subjects, faculty, locked):
     tt = {sec: pd.DataFrame("", index=days, columns=slots) for sec in sections}
     faculty_schedule = {}
 
@@ -38,37 +35,41 @@ def generate_tt(sections, days, slots, subjects, faculty):
 
         # THEORY
         for _ in range(data["theory"]):
-            for _ in range(20):
+            for _ in range(30):
                 sec = random.choice(sections)
                 day = random.choice(days)
                 slot = random.choice(slots)
-
                 fac = faculty[sub]
 
-                if tt[sec].loc[day, slot] == "" and (fac, day, slot) not in faculty_schedule:
+                if (
+                    tt[sec].loc[day, slot] == "" and
+                    (fac, day, slot) not in faculty_schedule and
+                    f"{day}-{slot}" not in locked
+                ):
                     tt[sec].loc[day, slot] = f"{sub}\n({fac})"
                     faculty_schedule[(fac, day, slot)] = True
                     break
 
-        # PRACTICAL (LAB - consecutive)
+        # PRACTICAL
         for _ in range(data["practical"]):
-            for _ in range(20):
+            for _ in range(30):
                 sec = random.choice(sections)
                 day = random.choice(days)
+                fac = faculty[sub]
 
                 for i in range(len(slots)-1):
                     s1, s2 = slots[i], slots[i+1]
-                    fac = faculty[sub]
 
                     if (
                         tt[sec].loc[day, s1] == "" and
                         tt[sec].loc[day, s2] == "" and
                         (fac, day, s1) not in faculty_schedule and
-                        (fac, day, s2) not in faculty_schedule
+                        (fac, day, s2) not in faculty_schedule and
+                        f"{day}-{s1}" not in locked and
+                        f"{day}-{s2}" not in locked
                     ):
                         tt[sec].loc[day, s1] = f"{sub} LAB"
                         tt[sec].loc[day, s2] = f"{sub} LAB"
-
                         faculty_schedule[(fac, day, s1)] = True
                         faculty_schedule[(fac, day, s2)] = True
                         break
@@ -79,24 +80,28 @@ def generate_tt(sections, days, slots, subjects, faculty):
     return tt
 
 
+def evaluate(tt):
+    score = 0
+    for sec, df in tt.items():
+        score += (df == "").sum().sum()
+    return score
+
+
 def detect_conflicts(tt):
     conflicts = []
     faculty_map = {}
 
     for sec, df in tt.items():
-        for day in df.index:
-            for slot in df.columns:
-                val = df.loc[day, slot]
-
+        for d in df.index:
+            for s in df.columns:
+                val = df.loc[d, s]
                 if "(" in val:
                     fac = val.split("(")[-1].replace(")", "")
-                    key = (fac, day, slot)
-
+                    key = (fac, d, s)
                     if key in faculty_map:
-                        conflicts.append(f"{fac} clash at {day} {slot}")
+                        conflicts.append(f"{fac} clash at {d} {s}")
                     else:
                         faculty_map[key] = sec
-
     return conflicts
 
 
@@ -111,24 +116,23 @@ def export_excel(tt):
 
 # -------- WELCOME --------
 if st.session_state.page == "welcome":
-
     st.title("🤖 AI Timetable Generator")
     st.subheader("Intelligent Academic Scheduling System")
 
     st.markdown("""
 ## 🚀 Advantages
-1. Saves time  
-2. Reduces errors  
-3. Handles multiple sections  
-4. Balanced faculty workload  
-5. Smart optimization  
+- Saves time  
+- Reduces errors  
+- Handles multiple sections  
+- Balanced workload  
+- Smart optimization  
 
 ## 📚 Uses
-1. Colleges  
-2. Schools  
-3. Coaching institutes  
-4. Faculty scheduling  
-5. Complex timetable handling  
+- Colleges  
+- Schools  
+- Coaching  
+- Faculty scheduling  
+- Complex timetables  
 """)
 
     if st.button("➡️ Continue"):
@@ -162,14 +166,11 @@ elif st.session_state.page == "app":
 
     st.title("📊 Timetable System")
 
-    # STEP 1
+    # -------- STEPS --------
     if st.session_state.step == 1:
 
-        st.header("Step 1: Course Setup")
+        st.header("Course Setup")
 
-        course = st.selectbox("Course", ["B.Tech","BBA","MBA","BSc"])
-        branch = st.selectbox("Branch", ["CSE","IT","ECE","EEE"])
-        shift = st.selectbox("Shift", ["Shift 1","Shift 2"])
         sections = st.multiselect("Sections", ["A","B","C"], default=["A"])
 
         if st.button("Next"):
@@ -177,24 +178,22 @@ elif st.session_state.page == "app":
             st.session_state.step = 2
             st.rerun()
 
-    # STEP 2
     elif st.session_state.step == 2:
 
-        st.header("Step 2: Subjects & Faculty")
+        st.header("Subjects")
 
         num = st.number_input("Subjects", 1, 10, 3)
 
-        subjects = {}
-        faculty = {}
+        subjects, faculty = {}, {}
 
         for i in range(num):
             sub = st.text_input(f"Subject {i}")
-            theory = st.number_input(f"Theory {i}", 1, 5, 3)
-            practical = st.number_input(f"Practical {i}", 0, 5, 1)
+            th = st.number_input(f"Theory {i}", 1, 5, 3)
+            pr = st.number_input(f"Practical {i}", 0, 5, 1)
             fac = st.text_input(f"Faculty {i}")
 
             if sub:
-                subjects[sub] = {"theory": theory, "practical": practical}
+                subjects[sub] = {"theory": th, "practical": pr}
                 faculty[sub] = fac
 
         if st.button("Next"):
@@ -203,13 +202,12 @@ elif st.session_state.page == "app":
             st.session_state.step = 3
             st.rerun()
 
-    # STEP 3
     elif st.session_state.step == 3:
 
-        st.header("Step 3: Time Setup")
+        st.header("Time Setup")
 
-        start = st.time_input("Start Time")
-        end = st.time_input("End Time")
+        start = st.time_input("Start")
+        end = st.time_input("End")
         duration = st.slider("Duration", 30, 120, 60)
 
         if st.button("Next"):
@@ -219,60 +217,80 @@ elif st.session_state.page == "app":
             st.session_state.step = 4
             st.rerun()
 
-    # STEP 4
     elif st.session_state.step == 4:
 
-        st.header("Step 4: Generate")
+        st.header("Dashboard")
 
         days = ["Mon","Tue","Wed","Thu","Fri"]
-
         slots = create_slots(
             st.session_state.start,
             st.session_state.end,
             st.session_state.duration
         )
 
-        if st.button("Generate Timetable"):
-            tt = generate_tt(
-                st.session_state.sections,
-                days,
-                slots,
-                st.session_state.subjects,
-                st.session_state.faculty
-            )
-            st.session_state.tt = tt
+        # 🔒 LOCK SLOTS
+        locked = st.multiselect(
+            "Lock Slots",
+            [f"{d}-{s}" for d in days for s in slots]
+        )
 
-        if "tt" in st.session_state:
+        tab1, tab2, tab3 = st.tabs(["Generate","View","Analytics"])
 
-            tt = st.session_state.tt
+        # -------- GENERATE --------
+        with tab1:
+            if st.button("Generate Best Timetable"):
 
-            for sec, df in tt.items():
-                st.subheader(f"Section {sec}")
-                st.dataframe(df)
+                best, best_score = None, float("inf")
 
-            # CONFLICTS
-            conflicts = detect_conflicts(tt)
-            if conflicts:
-                st.error("⚠️ Conflicts Found")
-                for c in conflicts:
-                    st.write(c)
-            else:
-                st.success("✅ No conflicts")
+                for _ in range(20):
+                    tt = generate_tt(
+                        st.session_state.sections,
+                        days,
+                        slots,
+                        st.session_state.subjects,
+                        st.session_state.faculty,
+                        locked
+                    )
+                    score = evaluate(tt)
 
-            # DOWNLOAD
-            file = export_excel(tt)
-            st.download_button("Download Excel", file, "timetable.xlsx")
+                    if score < best_score:
+                        best_score = score
+                        best = tt
 
-            # ANALYTICS
-            counts = {}
-            for sec, df in tt.items():
-                for d in df.index:
-                    counts[d] = counts.get(d, 0) + (df.loc[d] != "").sum()
+                st.session_state.tt = best
+                st.success(f"Best Score: {best_score}")
 
-            fig, ax = plt.subplots()
-            ax.bar(counts.keys(), counts.values())
-            st.pyplot(fig)
+        # -------- VIEW --------
+        with tab2:
+            if "tt" in st.session_state:
+                tt = st.session_state.tt
 
-        if st.button("🔄 Restart"):
+                for sec, df in tt.items():
+                    st.dataframe(df)
+
+                conflicts = detect_conflicts(tt)
+                if conflicts:
+                    st.error(conflicts)
+                else:
+                    st.success("No conflicts")
+
+                file = export_excel(tt)
+                st.download_button("Download Excel", file, "tt.xlsx")
+
+        # -------- ANALYTICS --------
+        with tab3:
+            if "tt" in st.session_state:
+                tt = st.session_state.tt
+
+                counts = {}
+                for sec, df in tt.items():
+                    for d in df.index:
+                        counts[d] = counts.get(d, 0) + (df.loc[d] != "").sum()
+
+                fig, ax = plt.subplots()
+                ax.bar(counts.keys(), counts.values())
+                st.pyplot(fig)
+
+        if st.button("Restart"):
             st.session_state.clear()
             st.rerun()
