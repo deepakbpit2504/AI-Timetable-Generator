@@ -28,10 +28,8 @@ def generate_timetable(sections, days, slots, subjects, faculty_map, rooms, stud
                     continue
 
                 room = random.choice(list(rooms.keys()))
-
                 target = combined if combined else sections
 
-                # Capacity check
                 valid = True
                 for sec in target:
                     if rooms[room] < students[sec]:
@@ -40,7 +38,6 @@ def generate_timetable(sections, days, slots, subjects, faculty_map, rooms, stud
                 if not valid:
                     continue
 
-                # Conflict checks
                 conflict = False
 
                 for sec in target:
@@ -64,61 +61,36 @@ def generate_timetable(sections, days, slots, subjects, faculty_map, rooms, stud
     return timetable
 
 
-def evaluate_timetable(timetable):
+def evaluate_timetable(tt):
     score = 0
     conflicts = []
 
-    faculty_usage = {}
-    room_usage = {}
-    faculty_load = {}
-    subject_day_count = {}
+    faculty_used = {}
+    room_used = {}
 
-    for sec, df in timetable.items():
-        for day in df.index:
-
-            prev_empty = False
-
-            for slot in df.columns:
-                val = df.loc[day, slot]
+    for sec, df in tt.items():
+        for d in df.index:
+            for s in df.columns:
+                val = df.loc[d,s]
 
                 if not val:
                     score += 5
-                    if prev_empty:
-                        score += 2
-                    prev_empty = True
                     continue
 
-                prev_empty = False
+                faculty = val.split("\n")[1].replace("(","").replace(")","")
+                room = val.split("[")[-1].replace("]","")
 
-                subject, rest = val.split("\n", 1)
-                faculty = rest.split("\n")[0].replace("(", "").replace(")", "")
-                room = val.split("[")[-1].replace("]", "")
-
-                faculty_load[faculty] = faculty_load.get(faculty, 0) + 1
-
-                key_sd = (sec, day, subject)
-                subject_day_count[key_sd] = subject_day_count.get(key_sd, 0) + 1
-
-                if subject_day_count[key_sd] > 2:
-                    score += 10
-
-                key1 = (day, slot, faculty)
-                if key1 in faculty_usage:
-                    score += 25
-                else:
-                    faculty_usage[key1] = True
-
-                key2 = (day, slot, room)
-                if key2 in room_usage:
+                if (d,s,faculty) in faculty_used:
                     score += 20
+                    conflicts.append(f"Faculty clash {faculty}")
                 else:
-                    room_usage[key2] = True
+                    faculty_used[(d,s,faculty)] = True
 
-    if faculty_load:
-        avg = sum(faculty_load.values()) / len(faculty_load)
-        for load in faculty_load.values():
-            if load > avg + 2:
-                score += 10
+                if (d,s,room) in room_used:
+                    score += 15
+                    conflicts.append(f"Room clash {room}")
+                else:
+                    room_used[(d,s,room)] = True
 
     return score, conflicts
 
