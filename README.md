@@ -1,126 +1,61 @@
-📅 Intelligent Timetable Generator
+# 🤖 AI Timetable Generator
 
-An AI-inspired, constraint-based timetable generation system designed for multi-section academic scheduling.
-This project automates the complex process of creating conflict-free timetables with faculty, room, and time constraints.
-
----
-
-🚀 Features
-
-- 🔐 User Authentication (Login System)
-- 🎓 Course & Section Selection
-- ⏰ Custom Time Slot Configuration
-- 👨‍🏫 Faculty Assignment
-- 🏫 Room Allocation
-- 🧠 Constraint-Based Scheduling
-- 🚨 Conflict Detection
-- 📊 Analytics Dashboard (Room Usage)
-- 📥 Export Timetable to Excel
-- 💾 Save Configuration
-- 🌙 Dark Mode UI
-- 🔄 Smart Regeneration
+An intelligent academic scheduling system that automatically generates optimized timetables with conflict detection, lab handling, and analytics.
 
 ---
 
-🧠 Problem Statement
+## 🚀 Features
 
-Generating academic timetables manually is:
-
-- Time-consuming
-- Error-prone
-- Difficult with multiple constraints
-
-This system solves:
-
-- Faculty clashes
-- Room overlaps
-- Multi-section scheduling
-- Efficient time allocation
+- 📘 Course, Branch, Shift & Section selection  
+- 👨‍🏫 Subjects with Theory + Practical (Lab support)  
+- ⏰ Time slot configuration  
+- 🔒 Lock specific time slots  
+- ⚠️ Conflict detection (faculty clash)  
+- 💯 Best timetable score generation  
+- 📊 Analytics (lectures per day)  
+- 📥 Export timetable to Excel  
 
 ---
 
-⚙️ Tech Stack
+## 🖥️ Features Preview
 
-- Frontend/UI: Streamlit
-- Backend Logic: Python
-- Data Handling: Pandas
-- Export: OpenPyXL
+### 🏠 Welcome Page
+![Welcome](assets/welcome.png)
+
+### 🔐 Login Page
+![Login](assets/login.png)
+
+### 📘 Course Selection
+![Course](assets/course.png)
+
+### 👨‍🏫 Subjects & Faculty
+![Subjects](assets/subjects.png)
+
+### ⏰ Time Configuration
+![Time](assets/time.png)
+
+### ⚙️ Generate Timetable
+![Generate](assets/generate.png)
+
+### 📊 View Timetable
+![View](assets/view.png)
+
+### 📈 Analytics
+![Analytics](assets/analytics.png)
 
 ---
 
-📁 Project Structure
+## 🛠️ Tech Stack
 
-timetable-app/
-│
-├── app.py              # Main application
-├── auth.py             # Login system
-├── scheduler.py        # Scheduling logic
-├── utils.py            # Helper functions
-├── data.json           # Subjects & faculty
-├── requirements.txt    # Dependencies
-└── README.md
+- Python  
+- Streamlit  
+- Pandas  
+- Matplotlib  
 
 ---
 
-▶️ How to Run
+## ▶️ How to Run
 
-1. Clone Repository
-
-git clone <your-repo-link>
-cd timetable-app
-
-2. Install Dependencies
-
-pip install -r requirements.txt
-
-3. Run Application
-
+```bash
+pip install streamlit pandas matplotlib openpyxl
 streamlit run app.py
-
----
-
-📊 Output
-
-- Section-wise Timetable
-- Faculty Assignment View
-- Room Utilization Chart
-- Excel Export
-
----
-
-🧪 Future Enhancements
-
-- 🤖 Google OR-Tools integration
-- 🧠 AI-based optimization
-- 🏫 Lab scheduling with constraints
-- 🌐 Cloud deployment
-- 📱 Mobile-friendly UI
-
----
-
-🎯 Use Cases
-
-- Colleges & Universities
-- Schools with multiple sections
-- Coaching Institutes
-
----
-
-👨‍💻 Author
-
-Deepak Dudeja
-B.Tech Student | Developer
-
----
-
-⭐ Conclusion
-
-This project demonstrates:
-
-- Real-world problem solving
-- Constraint-based system design
-- Scalable architecture
-
----
-
-⭐ If you like this project, consider giving it a star!
