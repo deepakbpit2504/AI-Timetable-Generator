@@ -169,9 +169,30 @@ elif st.session_state.page == "app":
     # -------- STEPS --------
     if st.session_state.step == 1:
 
-        st.header("Course Setup")
+    st.header("Course Setup")
 
-        sections = st.multiselect("Sections", ["A","B","C"], default=["A"])
+    course = st.selectbox("Course", ["B.Tech","BBA","MBA","BSc"])
+    branch = st.selectbox("Branch", ["CSE","IT","ECE","EEE"])
+    shift = st.selectbox("Shift", ["Shift 1","Shift 2"])
+
+    sections = st.multiselect("Sections", ["A","B","C"], default=["A"])
+
+    st.markdown("""
+### 📘 Why this step?
+This helps define the academic structure:
+- Course determines curriculum  
+- Branch defines specialization  
+- Shift handles morning/evening batches  
+- Sections divide students  
+""")
+
+    if st.button("Next"):
+        st.session_state.course = course
+        st.session_state.branch = branch
+        st.session_state.shift = shift
+        st.session_state.sections = sections
+        st.session_state.step = 2
+        st.rerun()
 
         if st.button("Next"):
             st.session_state.sections = sections
